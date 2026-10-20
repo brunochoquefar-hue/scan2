@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<title>Check-in Rápido</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--tx:#14202b;--mu:#64748b;--bd:#dbe2e8;--pr:#0f766e;--pr2:#115e59;--wa:#b45309;--er:#b91c1c;--ok:#15803d;--r:14px}
+@media(prefers-color-scheme:dark){:root{--bg:#0d141a;--card:#16202a;--tx:#e8eef3;--mu:#93a4b4;--bd:#273543;--pr:#14b8a6;--pr2:#2dd4bf;--wa:#f59e0b;--er:#f87171;--ok:#4ade80}}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx);padding-bottom:84px}
+header{position:sticky;top:0;z-index:5;background:var(--pr);color:#fff;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0px));display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:18px;margin:0}header small{opacity:.85}
+main{max-width:860px;margin:0 auto;padding:14px}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px);z-index:6}
+nav button{flex:1;border:0;background:none;color:var(--mu);padding:10px 4px;font:600 12px system-ui;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+nav button span{font-size:20px}nav button.on{color:var(--pr)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.hid{display:none!important}
+.cam{position:relative;background:#000;border-radius:var(--r);overflow:hidden;aspect-ratio:4/3}
+.cam video,.cam img{width:100%;height:100%;object-fit:cover;display:block}
+.guide{position:absolute;inset:12% 6%;border:3px dashed rgba(255,255,255,.8);border-radius:12px;pointer-events:none}
+.guide::after{content:"Encuadra el documento";position:absolute;top:-26px;left:0;right:0;text-align:center;color:#fff;font-size:13px;text-shadow:0 1px 3px #000}
+.busy{position:absolute;inset:0;background:rgba(0,0,0,.6);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.spin{width:34px;height:34px;border:4px solid #fff4;border-top-color:#fff;border-radius:50%;animation:s 1s linear infinite}@keyframes s{to{transform:rotate(360deg)}}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+button.b,label.b{border:0;border-radius:12px;padding:12px 16px;font:600 15px system-ui;background:var(--pr);color:#fff;cursor:pointer;flex:1;text-align:center;min-width:120px}
+.b.sec{background:none;color:var(--pr);border:1.5px solid var(--pr)}.b.dan{background:var(--er)}
+.b:disabled{opacity:.5}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:520px){.grid{grid-template-columns:1fr}}
+.full{grid-column:1/-1}
+label.f{display:flex;flex-direction:column;font-size:12px;color:var(--mu);gap:3px;font-weight:600}
+input,select,textarea{font:16px system-ui;padding:10px;border:1.5px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--pr);border-color:var(--pr)}
+input.w{border-color:var(--wa)}
+.msg{padding:10px 12px;border-radius:10px;font-size:14px;margin-bottom:10px}
+.msg.ok{background:#15803d22;color:var(--ok)}.msg.wa{background:#f59e0b22;color:var(--wa)}.msg.er{background:#ef444422;color:var(--er)}
+.seg{display:flex;border:1.5px solid var(--bd);border-radius:10px;overflow:hidden}
+.seg button{flex:1;border:0;background:none;color:var(--tx);padding:8px;font:600 13px system-ui;cursor:pointer}.seg .on{background:var(--pr);color:#fff}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px;text-align:center}.stat b{font-size:22px;display:block;color:var(--pr)}.stat small{color:var(--mu)}
+.rec{display:flex;gap:12px;align-items:center;cursor:pointer}
+.rec img{width:56px;height:56px;border-radius:10px;object-fit:cover;background:var(--bd);flex:none}
+.rec div{min-width:0;flex:1}.rec b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rec small{color:var(--mu)}
+.tag{font-size:11px;background:var(--pr);color:#fff;border-radius:6px;padding:1px 6px;margin-left:6px}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:20px;z-index:20;font-size:14px;max-width:90%}
+h2{font-size:17px;margin:4px 0 10px}p.mu{color:var(--mu);font-size:13px;margin:6px 0}
+</style>
+</head>
+<body>
+<header><h1>🛂 Check-in Rápido</h1><small id="cnt"></small></header>
+<main>
+
+<!-- CHECK-IN -->
+<section id="v-in">
+ <div id="bk" class="msg wa hid">⚠️ Hace tiempo que no respaldas tus registros. <a href="#" id="bkgo" style="color:inherit;font-weight:700">Exportar respaldo ahora</a></div>
+ <div class="card">
+  <div class="cam">
+   <video id="vid" playsinline muted autoplay></video>
+   <img id="shot" class="hid" alt="">
+   <div class="guide" id="gd"></div>
+   <div class="busy hid" id="busy"><div class="spin"></div><span id="busyt">Leyendo…</span></div>
+  </div>
+  <div class="row">
+   <button class="b" id="snap">📸 Tomar foto y leer</button>
+   <label class="b sec">🖼️ Subir imagen<input type="file" id="file" accept="image/*" hidden></label>
+   <button class="b sec hid" id="retake">↺ Repetir</button>
+  </div>
+  <div class="row" style="align-items:center"><span style="font-size:13px;color:var(--mu)">Lectura:</span>
+   <div class="seg" style="flex:1" id="mode"><button data-m="auto" class="on">Auto</button><button data-m="local">Solo local</button><button data-m="ai">IA</button></div>
+  </div>
+ </div>
+ <div class="card">
+  <div id="res"></div>
+  <h2 id="ftitle">Datos del huésped</h2>
+  <form id="frm" onsubmit="return false" autocomplete="off">
+   <div class="grid">
+    <label class="f">Tipo de documento<select id="tipo"><option>DNI</option><option>Pasaporte</option><option>Carné de extranjería</option><option>Otro</option></select></label>
+    <label class="f">N.º de documento<input id="numero" inputmode="text" autocapitalize="characters"></label>
+    <label class="f">Apellidos<input id="apellidos" autocapitalize="characters"></label>
+    <label class="f">Nombres<input id="nombres" autocapitalize="characters"></label>
+    <label class="f">Nacionalidad<input id="nacionalidad" placeholder="PER" autocapitalize="characters"></label>
+    <label class="f">Sexo<select id="sexo"><option value="">—</option><option>M</option><option>F</option><option>X</option></select></label>
+    <label class="f">Fecha de nacimiento<input type="date" id="nacimiento"></label>
+    <label class="f">Vencimiento del documento<input type="date" id="vencimiento"></label>
+    <label class="f">Habitación / Destino<input id="habitacion"></label>
+    <label class="f">Teléfono<input id="telefono" inputmode="tel"></label>
+    <label class="f full">Notas / Motivo de viaje<textarea id="notas" rows="2"></textarea></label>
+   </div>
+   <div class="row">
+    <button class="b" id="save" type="button">💾 Guardar</button>
+    <button class="b sec" id="clear" type="button">Limpiar</button>
+   </div>
+  </form>
+ </div>
+</section>
+
+<!-- REGISTROS -->
+<section id="v-reg" class="hid">
+ <div class="stats"><div class="stat"><b id="s1">0</b><small>Total</small></div><div class="stat"><b id="s2">0</b><small>Hoy</small></div><div class="stat"><b id="s3">0</b><small>Vencidos</small></div></div>
+ <div class="card">
+  <input id="q" type="search" placeholder="🔍 Buscar por nombre o n.º de documento">
+  <div class="row"><select id="ft" style="flex:1"><option value="">Todos los tipos</option><option>DNI</option><option>Pasaporte</option><option>Carné de extranjería</option><option>Otro</option></select>
+  <input type="date" id="fd" style="flex:1" title="Fecha de ingreso"></div>
+  <div class="row">
+   <button class="b" id="csv">⬇️ CSV / Excel</button>
+   <button class="b sec" id="tsv">📋 Copiar al libro</button>
+  </div>
+ </div>
+ <div id="list"></div>
+</section>
+
+<!-- AJUSTES -->
+<section id="v-set" class="hid">
+ <div class="card"><h2>💾 Respaldo</h2>
+  <p class="mu">Los datos viven solo en este dispositivo. Si se pierde el celular o se borra el navegador, se pierden. Respalda con frecuencia.</p>
+  <div class="row"><button class="b" id="bkj">Descargar respaldo (JSON)</button>
+  <label class="b sec">Restaurar respaldo<input type="file" id="rest" accept=".json" hidden></label></div>
+  <p class="mu" id="bkinfo"></p></div>
+ <div class="card"><h2>🤖 Lectura con IA (opcional, para DNI)</h2>
+  <p class="mu">Si el OCR local falla (reflejos, letra pequeña), la imagen se envía al proveedor de IA elegido para leerla. Requiere internet. La clave se guarda solo en este dispositivo.</p>
+  <label class="f">Proveedor<select id="prov"><option value="gemini">Google Gemini / Vertex</option><option value="anthropic">Anthropic Claude</option></select></label>
+  <label class="f" style="margin-top:8px">API key<input id="key" type="password" placeholder="AQ.… / AIza… / sk-ant-…"></label>
+  <label class="f" style="margin-top:8px">Modelo<input id="model"></label>
+  <div class="row"><button class="b" id="savekey">Guardar</button></div></div>
+ <div class="card"><h2>⚙️ Preferencias</h2>
+  <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="keepimg" style="width:auto"> Guardar miniatura de la foto con el registro</label>
+  <label style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="privacy" style="width:auto"> Ocultar n.º de documento en la lista</label>
+  <div class="row"><button class="b dan" id="wipe">🗑️ Borrar todos los registros</button></div></div>
+</section>
+</main>
+
+<nav>
+ <button data-v="in" class="on"><span>📷</span>Check-in</button>
+ <button data-v="reg"><span>📒</span>Registros</button>
+ <button data-v="set"><span>⚙️</span>Ajustes</button>
+</nav>
+
+<script>
+/* Clave por defecto (se copia a Ajustes en el primer uso). Bórrala o déjala vacía si no quieres incluirla. */
+const DEFAULT_KEY='AQ.Ab8RN6LTRVRMF2F9dm-scLJc0nB4fXfVaK8W8kpbS6gpz_kQrw';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const F=['tipo','numero','apellidos','nombres','nacionalidad','sexo','nacimiento','vencimiento','habitacion','telefono','notas'];
+let db,stream,mode='auto',editId=null,curImg=null,cache=[];
+const P=r=>new Promise((a,b)=>{r.onsuccess=()=>a(r.result);r.onerror=()=>b(r.error)});
+const st=m=>db.transaction('reg',m).objectStore('reg');
+const LS={get:(k,d)=>{try{return localStorage.getItem(k)??d}catch{return d}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}};
+const toast=t=>{const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.append(e);setTimeout(()=>e.remove(),2600)};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=d=>d?d.split('-').reverse().join('/'):'';
+const msg=(t,c)=>$('#res').innerHTML=t?`<div class="msg ${c}">${t}</div>`:'';
+
+/* ---------- Navegación ---------- */
+$$('nav button').forEach(b=>b.onclick=()=>{$$('nav button').forEach(x=>x.classList.toggle('on',x===b));
+ ['in','reg','set'].forEach(v=>$('#v-'+v).classList.toggle('hid',v!==b.dataset.v));
+ if(b.dataset.v==='in')startCam();else stopCam();
+ if(b.dataset.v==='reg')render();});
+$$('#mode button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;$$('#mode button').forEach(x=>x.classList.toggle('on',x===b))});
+
+/* ---------- Cámara ---------- */
+async function startCam(){
+ if(stream||curImg)return;
+ try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
+  $('#vid').srcObject=stream}catch(e){msg('No se pudo abrir la cámara ('+e.name+'). Usa “Subir imagen” o concede el permiso. La cámara requiere HTTPS o localhost.','wa')}}
+function stopCam(){stream?.getTracks().forEach(t=>t.stop());stream=null}
+function frame(src){ // devuelve canvas escalado
+ const w=src.videoWidth||src.naturalWidth,h=src.videoHeight||src.naturalHeight,k=Math.min(1,2200/Math.max(w,h));
+ const c=document.createElement('canvas');c.width=w*k;c.height=h*k;c.getContext('2d').drawImage(src,0,0,c.width,c.height);return c}
+$('#snap').onclick=()=>{const v=$('#vid');if(!v.videoWidth)return toast('La cámara no está lista');process(frame(v))};
+$('#file').onchange=e=>{const f=e.target.files[0];if(!f)return;const i=new Image();i.onload=()=>process(frame(i));i.src=URL.createObjectURL(f);e.target.value=''};
+$('#retake').onclick=()=>{curImg=null;$('#shot').classList.add('hid');$('#vid').classList.remove('hid');$('#gd').classList.remove('hid');$('#retake').classList.add('hid');msg('');startCam()};
+
+async function process(cv){
+ curImg=cv;$('#shot').src=cv.toDataURL('image/jpeg',.8);
+ $('#shot').classList.remove('hid');$('#vid').classList.add('hid');$('#gd').classList.add('hid');$('#retake').classList.remove('hid');
+ busy(true,'Leyendo documento…');msg('');
+ let data=null,how='';
+ try{
+  if(mode!=='ai'){data=await readMRZ(cv);how='MRZ local'}
+  const good=data&&data.valid;
+  if(mode==='ai'||(mode==='auto'&&!good&&LS.get('key'))){
+   busy(true,'Consultando IA…');
+   try{const a=await readAI(cv);data={...(data||{}),...a,valid:true};how='IA';}catch(e){if(!data)throw e;msg('IA no disponible: '+e.message,'wa')}}
+ }catch(e){msg('No se pudo leer: '+esc(e.message)+'. Completa a mano.','er')}
+ busy(false);
+ if(data){fill(data);
+  if(how==='IA')msg('Leído con IA. Verifica los datos antes de guardar.','ok');
+  else if(data.valid)msg('✅ Zona MRZ leída y validada (dígitos de control correctos). Revisa y guarda.','ok');
+  else msg('⚠️ Lectura parcial: algunos dígitos de control no coinciden. Revisa los campos marcados.'+(LS.get('key')?'':' Para DNI puedes activar la IA en Ajustes.'),'wa')}
+ else if(!$('#res').innerHTML)msg('No se detectó la zona MRZ. Para DNI antiguo usa modo IA o escribe los datos.','wa');
+}
+function busy(on,t){$('#busy').classList.toggle('hid',!on);if(t)$('#busyt').textContent=t}
+
+/* ---------- OCR local + MRZ ---------- */
+let tessP;
+function loadTess(){return tessP||(tessP=new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js';s.onload=ok;s.onerror=()=>{tessP=null;no(new Error('Sin internet para cargar el OCR la primera vez'))};document.head.append(s)}))}
+function prep(cv,frac){const h=Math.round(cv.height*frac),y=cv.height-h,c=document.createElement('canvas'),k=Math.max(1,1800/cv.width);
+ c.width=cv.width*k;c.height=h*k;const x=c.getContext('2d');x.drawImage(cv,0,y,cv.width,h,0,0,c.width,c.height);
+ const d=x.getImageData(0,0,c.width,c.height),p=d.data;let mn=255,mx=0;
+ for(let i=0;i<p.length;i+=4){const g=.3*p[i]+.59*p[i+1]+.11*p[i+2];p[i]=g;if(g<mn)mn=g;if(g>mx)mx=g}
+ const r=Math.max(1,mx-mn);for(let i=0;i<p.length;i+=4){const g=Math.max(0,Math.min(255,(p[i]-mn)/r*255*1.15));p[i]=p[i+1]=p[i+2]=g}
+ x.putImageData(d,0,0);return c}
+let worker;
+async function readMRZ(cv){
+ await loadTess();
+ if(!worker){worker=await Tesseract.createWorker('eng');await worker.setParameters({tessedit_char_whitelist:'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<',preserve_interword_spaces:'0'})}
+ let best=null;
+ for(const f of [.35,.5,1]){
+  const {data}=await worker.recognize(prep(cv,f));const m=parseMRZ(data.text);
+  if(m&&(!best||m.score>best.score))best=m;if(best&&best.valid)break}
+ if(!best)throw new Error('no se encontró la zona MRZ');return best}
+
+const W=[7,3,1],V=c=>c==='<'?0:c>='A'?c.charCodeAt(0)-55:+c;
+const cd=s=>{let t=0;for(let i=0;i<s.length;i++)t+=(V(s[i])||0)*W[i%3];return t%10};
+const N=s=>s.replace(/O/g,'0').replace(/[IL]/g,'1').replace(/B/g,'8').replace(/S/g,'5').replace(/Z/g,'2').replace(/G/g,'6');
+const chk=(f,c)=>cd(N(f))===+N(c)||cd(f)===+N(c);
+function iso(s,exp){s=N(s);if(!/^\d{6}$/.test(s))return'';let y=+s.slice(0,2);const cy=new Date().getFullYear()%100;y=exp?2000+y:(y>cy?1900+y:2000+y);return`${y}-${s.slice(2,4)}-${s.slice(4,6)}`}
+const nm=s=>{const [a,b]=s.replace(/<+$/,'').split('<<');return{apellidos:(a||'').replace(/</g,' ').trim(),nombres:(b||'').replace(/</g,' ').trim()}};
+const sx=c=>c==='M'||c==='F'?c:'X';
+function parseMRZ(txt){
+ const L=txt.toUpperCase().split('\n').map(s=>s.replace(/[\s«‹‚]/g,m=>/\s/.test(m)?'':'<')).filter(s=>s.length>=26&&s.length<=47);
+ const l3=L.filter(s=>s.length>=40);
+ if(l3.length>=2){let [a,b]=l3.slice(-2).map(s=>s.padEnd(44,'<').slice(0,44));
+  const ok=[chk(b.slice(0,9),b[9]),chk(b.slice(13,19),b[19]),chk(b.slice(21,27),b[27])];
+  const sc=ok.filter(Boolean).length;
+  return{score:sc,valid:sc===3,tipo:'Pasaporte',...nm(a.slice(5)),numero:b.slice(0,9).replace(/</g,''),nacionalidad:b.slice(10,13).replace(/</g,''),
+   nacimiento:iso(b.slice(13,19)),sexo:sx(b[20]),vencimiento:iso(b.slice(21,27),1)}}
+ const l1=L.filter(s=>s.length>=28&&s.length<=32);
+ if(l1.length>=3){const [a,b,c]=l1.slice(-3).map(s=>s.padEnd(30,'<').slice(0,30));
+  const ok=[chk(a.slice(5,14),a[14]),chk(b.slice(0,6),b[6]),chk(b.slice(8,14),b[14])];
+  const sc=ok.filter(Boolean).length,pais=a.slice(2,5).replace(/</g,'');
+  let num=a.slice(5,14).replace(/</g,'');
+  return{score:sc,valid:sc===3,tipo:pais==='PER'&&num.length<=9?'DNI':'Otro',...nm(c),numero:num,nacionalidad:b.slice(15,18).replace(/</g,''),
+   nacimiento:iso(b.slice(0,6)),sexo:sx(b[7]),vencimiento:iso(b.slice(8,14),1)}}
+ return null}
+
+/* ---------- IA de visión ---------- */
+async function readAI(cv){
+ const key=LS.get('key');if(!key)throw new Error('configura tu API key en Ajustes');
+ const prov=LS.get('prov','gemini');
+ const k=Math.min(1,1600/Math.max(cv.width,cv.height)),c=document.createElement('canvas');c.width=cv.width*k;c.height=cv.height*k;c.getContext('2d').drawImage(cv,0,0,c.width,c.height);
+ const b64=c.toDataURL('image/jpeg',.85).split(',')[1];
+ const prompt='Lee este documento de identidad (DNI, pasaporte, carné de extranjería u otro). Responde SOLO un JSON sin texto extra con las claves: tipo ("DNI","Pasaporte","Carné de extranjería" u "Otro"), apellidos, nombres, numero, nacionalidad (código ISO de 3 letras), nacimiento (YYYY-MM-DD), sexo ("M","F" o "X"), vencimiento (YYYY-MM-DD). Usa "" si un dato no es legible. No inventes datos.';
+ let t;
+ if(prov==='anthropic'){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+   body:JSON.stringify({model:LS.get('model','claude-sonnet-5-5'),max_tokens:600,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},{type:'text',text:prompt}]}]})});
+  if(!r.ok)throw new Error('API '+r.status);
+  const j=await r.json();t=(j.content||[]).map(x=>x.text||'').join('');
+ }else{
+  const base=key.startsWith('AQ.')?'https://aiplatform.googleapis.com/v1/publishers/google/models/':'https://generativelanguage.googleapis.com/v1beta/models/';
+  const r=await fetch(base+encodeURIComponent(LS.get('model','gemini-2.5-flash'))+':generateContent?key='+encodeURIComponent(key),{method:'POST',headers:{'content-type':'application/json'},
+   body:JSON.stringify({contents:[{role:'user',parts:[{inlineData:{mimeType:'image/jpeg',data:b64}},{text:prompt}]}],generationConfig:{temperature:0,responseMimeType:'application/json'}})});
+  if(!r.ok)throw new Error('API '+r.status);
+  const j=await r.json();t=(j.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('');
+ }
+ t=t.replace(/```json|```/g,'').trim();
+ return JSON.parse(t.slice(t.indexOf('{'),t.lastIndexOf('}')+1))}
+
+/* ---------- Formulario ---------- */
+function fill(d){F.forEach(f=>{if(d[f]!==undefined&&d[f]!==''){const e=$('#'+f);e.value=d[f];}});
+ ['numero','apellidos','nombres','nacimiento','vencimiento'].forEach(f=>$('#'+f).classList.toggle('w',!$('#'+f).value))}
+const get=()=>Object.fromEntries(F.map(f=>[f,$('#'+f).value.trim()]));
+function clearForm(){F.forEach(f=>{$('#'+f).value=f==='tipo'?'DNI':'';$('#'+f).classList.remove('w')});editId=null;curImg=null;msg('');
+ $('#ftitle').textContent='Datos del huésped';$('#save').textContent='💾 Guardar';$('#retake').click();}
+$('#clear').onclick=clearForm;
+function thumb(){if(!curImg||LS.get('keepimg','1')!=='1')return null;const c=document.createElement('canvas'),k=480/Math.max(curImg.width,curImg.height);c.width=curImg.width*k;c.height=curImg.height*k;c.getContext('2d').drawImage(curImg,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.6)}
+$('#save').onclick=async()=>{
+ const d=get();if(!d.numero||!(d.apellidos||d.nombres))return toast('Falta n.º de documento y nombre');
+ if(d.vencimiento&&d.vencimiento<new Date().toISOString().slice(0,10)&&!confirm('El documento figura VENCIDO. ¿Guardar igual?'))return;
+ const all=await P(st('readonly').getAll());
+ if(!editId&&all.some(r=>r.numero===d.numero&&r.ingreso.slice(0,10)===new Date().toISOString().slice(0,10))&&!confirm('Ya hay un registro de este documento hoy. ¿Guardar duplicado?'))return;
+ if(editId){const old=all.find(r=>r.id===editId);await P(st('readwrite').put({...old,...d,img:thumb()||old.img}));toast('Registro actualizado')}
+ else{await P(st('readwrite').add({...d,ingreso:new Date().toISOString(),img:thumb()}));toast('✅ Guardado')}
+ navigator.storage?.persist?.();clearForm();count();};
+
+/* ---------- Registros ---------- */
+async function load(){cache=await P(st('readonly').getAll());cache.sort((a,b)=>b.ingreso.localeCompare(a.ingreso))}
+async function count(){await load();$('#cnt').textContent=cache.length+' registros';
+ const old=+LS.get('lastBackup',0);$('#bk').classList.toggle('hid',!(cache.length&&Date.now()-old>7*864e5));
+ $('#bkinfo').textContent=old?'Último respaldo: '+new Date(old).toLocaleString():'Aún no hay respaldos.'}
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+function filtered(){const q=norm($('#q').value),t=$('#ft').value,d=$('#fd').value;
+ return cache.filter(r=>(!q||norm(r.apellidos+' '+r.nombres+' '+r.numero+' '+r.apellidos).includes(q)||norm(r.nombres+' '+r.apellidos).includes(q))&&(!t||r.tipo===t)&&(!d||r.ingreso.slice(0,10)===d))}
+async function render(){await load();const today=new Date().toISOString().slice(0,10);
+ $('#s1').textContent=cache.length;$('#s2').textContent=cache.filter(r=>r.ingreso.slice(0,10)===today).length;
+ $('#s3').textContent=cache.filter(r=>r.vencimiento&&r.vencimiento<today).length;
+ const hide=LS.get('privacy')==='1',rs=filtered();
+ $('#list').innerHTML=rs.length?rs.map(r=>`<div class="card rec" data-id="${r.id}">${r.img?`<img src="${r.img}">`:'<img alt="">'}<div><b>${esc(r.apellidos)}, ${esc(r.nombres)}<span class="tag">${esc(r.tipo)}</span></b>
+ <small>${hide?'••••'+esc(r.numero.slice(-3)):esc(r.numero)} · ${esc(r.nacionalidad)} · ${new Date(r.ingreso).toLocaleString('es-PE',{dateStyle:'short',timeStyle:'short'})}${r.habitacion?' · Hab. '+esc(r.habitacion):''}</small>
+ ${r.vencimiento&&r.vencimiento<today?'<br><small style="color:var(--er)">⚠ Documento vencido</small>':''}</div></div>`).join(''):'<p class="mu" style="text-align:center">Sin resultados</p>'}
+$('#q').oninput=$('#ft').onchange=$('#fd').onchange=render;
+$('#list').onclick=e=>{const c=e.target.closest('.rec');if(!c)return;const r=cache.find(x=>x.id==c.dataset.id);
+ const a=prompt(`${r.apellidos}, ${r.nombres}\n${r.tipo} ${r.numero}\n\nEscribe:\n1 = Editar\n2 = Copiar fila\n3 = Eliminar`);
+ if(a==='1'){$('[data-v=in]').click();stopCam();fill(r);editId=r.id;curImg=null;$('#ftitle').textContent='Editando registro';$('#save').textContent='💾 Actualizar';if(r.img){$('#shot').src=r.img;$('#shot').classList.remove('hid');$('#vid').classList.add('hid');$('#gd').classList.add('hid');$('#retake').classList.remove('hid')}}
+ else if(a==='2')copy([row(r)])
+ else if(a==='3'&&confirm('¿Eliminar este registro?'))P(st('readwrite').delete(r.id)).then(()=>{render();count()})};
+const H=['Fecha ingreso','Tipo','N.º documento','Apellidos','Nombres','Nacionalidad','Sexo','Nacimiento','Vencimiento','Habitación','Teléfono','Notas'];
+const row=r=>[new Date(r.ingreso).toLocaleString('es-PE'),r.tipo,r.numero,r.apellidos,r.nombres,r.nacionalidad,r.sexo,fmt(r.nacimiento),fmt(r.vencimiento),r.habitacion,r.telefono,r.notas];
+function dl(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),3000)}
+$('#csv').onclick=()=>{const rs=filtered();if(!rs.length)return toast('Nada que exportar');
+ const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+ dl(`registros_${new Date().toISOString().slice(0,10)}.csv`,'\ufeff'+[H,...rs.map(row)].map(r=>r.map(q).join(',')).join('\r\n'),'text/csv;charset=utf-8');toast('CSV descargado');LS.set('lastBackup',Date.now());count()};
+async function copy(rows){const t=rows.map(r=>r.map(v=>String(v??'').replace(/[\t\n]/g,' ')).join('\t')).join('\n');
+ try{await navigator.clipboard.writeText(t);toast('Copiado: pega en Excel o tu libro')}catch{prompt('Copia manualmente:',t)}}
+$('#tsv').onclick=()=>copy(filtered().map(row));
+
+/* ---------- Ajustes ---------- */
+$('#bkj').onclick=$('#bkgo').onclick=async e=>{e?.preventDefault?.();await load();dl(`respaldo_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({v:1,data:cache}),'application/json');LS.set('lastBackup',Date.now());count();toast('Respaldo descargado')};
+$('#rest').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const j=JSON.parse(await f.text());const s=st('readwrite');let n=0;for(const r of j.data){delete r.id;s.add(r);n++}toast(n+' registros restaurados');setTimeout(()=>{count();render()},400)}catch{toast('Archivo no válido')}e.target.value=''};
+$('#prov').onchange=e=>{$('#model').value=e.target.value==='gemini'?'gemini-2.5-flash':'claude-sonnet-5-5'};
+$('#savekey').onclick=()=>{LS.set('key',$('#key').value.trim());LS.set('prov',$('#prov').value);LS.set('model',$('#model').value.trim());toast('Guardado')};
+$('#keepimg').onchange=e=>LS.set('keepimg',e.target.checked?'1':'0');
+$('#privacy').onchange=e=>LS.set('privacy',e.target.checked?'1':'0');
+$('#wipe').onclick=async()=>{if(confirm('¿Borrar TODOS los registros? Esto no se puede deshacer.')&&confirm('¿Ya descargaste un respaldo?')){await P(st('readwrite').clear());count();toast('Registros borrados')}};
+
+/* ---------- Inicio + PWA ---------- */
+(async()=>{
+ db=await new Promise((a,b)=>{const r=indexedDB.open('checkin',1);r.onupgradeneeded=()=>r.result.createObjectStore('reg',{keyPath:'id',autoIncrement:true});r.onsuccess=()=>a(r.result);r.onerror=()=>b(r.error)});
+ if(!LS.get('key')&&DEFAULT_KEY){LS.set('key',DEFAULT_KEY);LS.set('prov','gemini');LS.set('model','gemini-2.5-flash')}
+ $('#key').value=LS.get('key','');$('#prov').value=LS.get('prov','gemini');$('#model').value=LS.get('model','gemini-2.5-flash');
+ $('#keepimg').checked=LS.get('keepimg','1')==='1';$('#privacy').checked=LS.get('privacy')==='1';
+ await count();startCam();
+ const icon='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#0f766e"/><text x="50" y="68" font-size="56" text-anchor="middle">🛂</text></svg>');
+ const mf={name:'Check-in Rápido',short_name:'Check-in',display:'standalone',background_color:'#0f766e',theme_color:'#0f766e',start_url:location.href.split('#')[0],icons:[{src:icon,sizes:'192x192 512x512',type:'image/svg+xml',purpose:'any'}]};
+ const l=document.createElement('link');l.rel='manifest';l.href=URL.createObjectURL(new Blob([JSON.stringify(mf)],{type:'application/manifest+json'}));document.head.append(l);
+ if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
